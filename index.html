@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f3f8fc">
+    <title>Hot Water Peak Planner — compare a real household routine</title>
+    <meta name="description" content="Model your household's shower schedule against a storage hot-water tank and recovery rate. Compare two systems with transparent assumptions, privately in your browser.">
+    <link rel="canonical" href="https://thisbejim.github.io/hot-water-peak-planner/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Hot Water Peak Planner">
+    <meta property="og:description" content="See how a real household hot-water schedule draws down a storage tank, and compare recovery scenarios.">
+    <meta property="og:url" content="https://thisbejim.github.io/hot-water-peak-planner/">
+    <meta name="twitter:card" content="summary">
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./styles.css">
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Hot Water Peak Planner",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any modern browser",
+        "description": "A browser-only scenario planner for household hot-water drawdown and storage-tank recovery.",
+        "url": "https://thisbejim.github.io/hot-water-peak-planner/",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "AUD" }
+      }
+    </script>
+    <script type="module" src="./src/app.mjs"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#planner">Skip to the planner</a>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Hot Water Peak Planner home">
+        <span class="brand-mark" aria-hidden="true">≈</span>
+        <span>HOT WATER <strong>PEAK PLANNER</strong></span>
+      </a>
+      <div class="privacy-note"><span aria-hidden="true">●</span> Your inputs stay in this browser</div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">A clearer way to plan hot water</p>
+          <h1 id="page-title">Will the hot water last through your busy morning?</h1>
+          <p class="hero-intro">Set your tank, heater recovery and household routine. See when demand peaks, then compare another storage system using the same schedule.</p>
+          <div class="hero-points" aria-label="Planner features">
+            <span><b aria-hidden="true">01</b> Use your actual routine</span>
+            <span><b aria-hidden="true">02</b> Compare two systems</span>
+            <span><b aria-hidden="true">03</b> Check every assumption</span>
+          </div>
+        </div>
+        <aside class="hero-quick" aria-label="Quick answer">
+          <p class="quick-label">TAP-WATER CAPACITY</p>
+          <p class="quick-value" id="quick-capacity">— <small>L</small></p>
+          <p class="quick-detail" id="quick-detail">at your selected outlet temperature</p>
+          <div class="quick-rule"><span aria-hidden="true">↳</span> We calculate the routine against stored heat, not a people-per-tank shortcut.</div>
+        </aside>
+      </section>
+
+      <div id="error-summary" class="error-summary" role="alert" aria-live="assertive" hidden></div>
+
+      <section class="planner-layout" id="planner" aria-label="Hot water scenario planner">
+        <div class="inputs-column">
+          <section class="panel settings-panel" aria-labelledby="system-heading">
+            <div class="section-heading">
+              <div><p class="step-label">YOUR SYSTEM</p><h2 id="system-heading">Start with the tank</h2></div>
+              <button type="button" class="text-button" id="reset-button">Reset example</button>
+            </div>
+            <p class="section-copy">Use the tank label and product specification if you have them. Set recovery to zero to see the tank without reheating during the routine.</p>
+            <div class="system-grid" id="systems"></div>
+            <button type="button" class="add-system-button" id="compare-toggle" aria-pressed="true">＋ Compare a second system</button>
+
+            <div class="temperature-heading"><h3>Water temperatures</h3><span>Shared by both systems</span></div>
+            <div class="field-grid temperature-grid">
+              <label class="field"><span>Stored in tank</span><span class="input-wrap"><input id="stored-temp" type="number" min="1" max="100" step="1" value="60" inputmode="decimal"><span>°C</span></span><small class="field-hint">This is different from tap temperature.</small></label>
+              <label class="field"><span>Incoming cold water</span><span class="input-wrap"><input id="cold-temp" type="number" min="0" max="50" step="1" value="15" inputmode="decimal"><span>°C</span></span><small class="field-hint">Use a seasonal estimate if unknown.</small></label>
+              <label class="field"><span>Temperature at the tap</span><span class="input-wrap"><input id="outlet-temp" type="number" min="1" max="50" step="1" value="40" inputmode="decimal"><span>°C</span></span><small class="field-hint">Model limit: 50°C.</small></label>
+            </div>
+            <p class="safety-note"><span aria-hidden="true">i</span> Australian guidance recommends storing hot water at 60°C. A licensed plumber should set and check storage and delivery temperatures.</p>
+          </section>
+
+          <section class="panel routine-panel" aria-labelledby="routine-heading">
+            <div class="section-heading routine-title-row">
+              <div><p class="step-label">YOUR ROUTINE</p><h2 id="routine-heading">When hot water is used</h2></div>
+              <span class="routine-count" id="routine-count">5 events</span>
+            </div>
+            <p class="section-copy">Add showers, baths or other hot-water use. Overlapping events are combined to model simultaneous use.</p>
+            <div class="routine-toolbar">
+              <label class="preset-field" for="routine-preset">Try a routine</label>
+              <select id="routine-preset">
+                <option value="family">Five showers, back to back</option>
+                <option value="rush">Two simultaneous showers</option>
+                <option value="spread">Showers spread through the day</option>
+              </select>
+            </div>
+            <div class="event-header" aria-hidden="true"><span>Use</span><span>Start</span><span>Minutes</span><span>Flow · L/min</span><span></span></div>
+            <div class="events-list" id="events-list"></div>
+            <button type="button" class="add-event-button" id="add-event">＋ Add hot-water event</button>
+          </section>
+
+          <div class="action-row" aria-label="Scenario actions">
+            <button type="button" class="button button-primary" id="copy-summary">Copy summary</button>
+            <button type="button" class="button button-secondary" id="copy-link">Copy share link</button>
+            <button type="button" class="button button-secondary" id="print-button">Print plan</button>
+          </div>
+          <p class="action-status" id="action-status" role="status" aria-live="polite"></p>
+        </div>
+
+        <aside class="results-column" aria-labelledby="results-heading">
+          <section class="results-top">
+            <p class="step-label">YOUR RESULT</p>
+            <h2 id="results-heading">See what happens</h2>
+            <p class="results-lead">Same temperatures and routine for each system. Compare the modelled water reserve at every event.</p>
+          </section>
+          <div id="results" class="results-grid" aria-live="polite" aria-atomic="false"></div>
+          <section class="model-card" aria-labelledby="model-heading">
+            <div class="model-icon" aria-hidden="true">ƒ</div>
+            <div><h3 id="model-heading">A transparent planning model</h3><p>Each use draws the hot-water share needed to reach your tap temperature. Recovery adds heat between and during events. The model treats the tank as evenly mixed, so real stratified tanks, heat-pump conditions and pipe losses can behave differently.</p><button type="button" class="inline-link" id="math-toggle" aria-expanded="false" aria-controls="math-details">Show the calculation</button></div>
+            <div class="math-details" id="math-details" hidden>
+              <p><strong>Tap-water capacity:</strong> tank litres × (stored °C − cold °C) ÷ (tap °C − cold °C)</p>
+              <p><strong>Recovery:</strong> heater heat output is converted to equivalent tank litres using water's heat capacity over the selected temperature rise.</p>
+              <p>All estimates use your inputs. They do not select a product, verify a model rating or replace a plumber's sizing assessment.</p>
+            </div>
+          </section>
+          <section class="sources-card" aria-labelledby="sources-heading">
+            <h3 id="sources-heading">Guidance behind the planner</h3>
+            <ul>
+              <li><a href="https://www.energy.vic.gov.au/victorian-energy-upgrades/products/hot-water-system-discounts/hot-water-buyers-guide" target="_blank" rel="noreferrer">Victorian Energy Upgrades: choosing a hot-water system</a></li>
+              <li><a href="https://www.energy.gov.au/households/household-guides/life-stages-advice/renters" target="_blank" rel="noreferrer">Australian Government: hot-water temperature guidance</a></li>
+              <li><a href="https://ncc.abcb.gov.au/editions/ncc-2022/adopted/volume-three/b-water-services/part-b2-heated-water-services" target="_blank" rel="noreferrer">National Construction Code: heated-water services</a></li>
+            </ul>
+          </section>
+        </aside>
+      </section>
+
+      <section class="explainer" aria-labelledby="why-heading">
+        <div><p class="eyebrow">Why use a schedule?</p><h2 id="why-heading">Daily litres don’t show a morning rush.</h2></div>
+        <div><p>Two homes can use the same amount of hot water in a day and need different storage capacity. Long or back-to-back showers can draw down a tank before its heater has time to recover. This planner lets you change the timing, flow and heater output to see how those assumptions affect the result.</p><p>Start with your fixture flow rate and the heater’s published water-heating output. If you do not know the output, use zero for a storage-only comparison.</p></div>
+      </section>
+
+      <section class="faq-section" aria-labelledby="faq-heading">
+        <p class="eyebrow">A few useful details</p><h2 id="faq-heading">Questions people ask</h2>
+        <details><summary>What does “tap-water capacity” mean?</summary><p>It estimates how many litres at your selected tap temperature could be mixed from a full tank at its stored temperature and the cold-water temperature you entered. It is a heat-balance estimate, not the exact first-hour delivery printed for a heater.</p></details>
+        <details><summary>What if I don’t know my tank’s heating output?</summary><p>Set output to 0 kW. The planner will show demand against stored heat without giving credit for recovery. If a product label lists recovery in litres per hour, convert it to thermal output only if you know the test conditions; otherwise ask the supplier or installer.</p></details>
+        <details><summary>Can I use this to choose or install a water heater?</summary><p>No. It is a scenario planner for comparing assumptions. The estimate does not account for tank stratification, first-hour rating, heat-pump derating, pipe losses, plumbing layout, regulations or all usage patterns. Have a licensed plumber size and install a system.</p></details>
+        <details><summary>Does this upload my household schedule?</summary><p>No. The planner runs in your browser and saves settings only in this browser’s local storage. A share link encodes the scenario in the URL, so share it only with people you choose.</p></details>
+      </section>
+    </main>
+
+    <footer class="site-footer"><span>Hot Water Peak Planner</span><span>Free · No account · No tracking</span><a href="https://github.com/thisbejim/hot-water-peak-planner">Open-source project</a></footer>
+  </body>
+</html>
